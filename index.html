@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+  <!-- ── PWA / iOS スタンドアロン設定 ── -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Command Center">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#0a0a0f">
+
+  <title>Command Center</title>
+
+  <style>
+    /* ── Reset & Base ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0a0a0f;
+      --surface:   #111118;
+      --border:    rgba(255,255,255,0.07);
+      --text-main: #e8e8f0;
+      --text-muted: #5a5a72;
+      --radius:    16px;
+      --safe-top:    env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display",
+                   "Segoe UI", Helvetica, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* ── Scrollbar ────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+    /* ── Layout ───────────────────────────────────────────── */
+    .wrapper {
+      min-height: 100vh;
+      padding-top: calc(var(--safe-top) + 24px);
+      padding-bottom: calc(var(--safe-bottom) + 40px);
+      padding-left: 20px;
+      padding-right: 20px;
+    }
+
+    /* ── Header ───────────────────────────────────────────── */
+    .header {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+
+    .header-eyebrow {
+      font-size: 10px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .header-title {
+      font-size: clamp(26px, 6vw, 38px);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #ffffff 0%, #8888aa 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.1;
+    }
+
+    .header-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 8px;
+      letter-spacing: 0.05em;
+    }
+
+    /* ── Tabs ─────────────────────────────────────────────── */
+    .tabs-wrap {
+      position: sticky;
+      top: calc(var(--safe-top) + 8px);
+      z-index: 100;
+      margin-bottom: 28px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      padding: 4px 2px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .tabs::-webkit-scrollbar { display: none; }
+
+    .tab {
+      flex-shrink: 0;
+      padding: 9px 18px;
+      border-radius: 40px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .tab:hover {
+      color: var(--text-main);
+      border-color: rgba(255,255,255,0.18);
+    }
+
+    .tab.active {
+      color: #000;
+      font-weight: 700;
+      border-color: transparent;
+    }
+
+    /* ── Grid ─────────────────────────────────────────────── */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 16px;
+    }
+
+    /* ── Card ─────────────────────────────────────────────── */
+    .card {
+      position: relative;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      padding: 24px;
+      cursor: pointer;
+      text-decoration: none;
+      color: inherit;
+      display: block;
+      transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease, opacity 0.22s ease;
+      overflow: hidden;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: var(--radius);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+    }
+
+    .card:hover {
+      transform: translateY(-3px);
+    }
+
+    .card:hover::before { opacity: 1; }
+
+    .card:active { transform: translateY(0) scale(0.98); }
+
+    /* アクティブカード用グロー */
+    .card[data-status="active"]:hover {
+      box-shadow: 0 8px 32px -8px var(--card-color, #00d4ff),
+                  0 0 0 1px var(--card-color, #00d4ff);
+      border-color: var(--card-color, #00d4ff);
+    }
+
+    /* コーナーアクセント */
+    .card-accent {
+      position: absolute;
+      top: 0; right: 0;
+      width: 80px; height: 80px;
+      border-radius: 0 var(--radius) 0 80px;
+      opacity: 0.08;
+      transition: opacity 0.3s ease;
+    }
+    .card:hover .card-accent { opacity: 0.16; }
+
+    .card-icon {
+      font-size: 32px;
+      margin-bottom: 14px;
+      line-height: 1;
+      display: block;
+    }
+
+    .card-name {
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      margin-bottom: 6px;
+    }
+
+    .card-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin-bottom: 16px;
+    }
+
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .card-category {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid currentColor;
+      opacity: 0.7;
+    }
+
+    .card-arrow {
+      font-size: 14px;
+      opacity: 0.4;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+
+    .card[data-status="active"]:hover .card-arrow {
+      opacity: 1;
+      transform: translateX(3px);
+    }
+
+    /* Coming Soon バッジ */
+    .card[data-status="coming-soon"] {
+      cursor: default;
+      opacity: 0.5;
+    }
+
+    .card[data-status="coming-soon"]:hover {
+      transform: none;
+      box-shadow: none;
+      border-color: var(--border);
+    }
+
+    .badge-coming {
+      position: absolute;
+      top: 16px; right: 16px;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 4px 8px;
+      border-radius: 6px;
+      background: rgba(255,255,255,0.08);
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+
+    /* ── フィルタリングアニメーション ──────────────────────── */
+    .card.hidden {
+      display: none;
+    }
+
+    .card.fade-in {
+      animation: fadeUp 0.35s ease forwards;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* coming-soon は透明度を維持 */
+    .card[data-status="coming-soon"].fade-in {
+      animation: fadeUpDim 0.35s ease forwards;
+    }
+
+    @keyframes fadeUpDim {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 0.5; transform: translateY(0); }
+    }
+
+    /* ── Section label ────────────────────────────────────── */
+    .section-label {
+      grid-column: 1 / -1;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      padding-bottom: 4px;
+      border-bottom: 1px solid var(--border);
+      margin-top: 8px;
+    }
+
+    .section-label.hidden { display: none; }
+
+    /* ── Footer ───────────────────────────────────────────── */
+    .footer {
+      text-align: center;
+      margin-top: 48px;
+      font-size: 11px;
+      color: var(--text-muted);
+      letter-spacing: 0.08em;
+    }
+
+    /* ── Responsive ───────────────────────────────────────── */
+    @media (max-width: 480px) {
+      .wrapper { padding-left: 16px; padding-right: 16px; }
+      .grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+      .card { padding: 18px 16px; }
+      .card-icon { font-size: 26px; margin-bottom: 10px; }
+      .card-name { font-size: 14px; }
+      .card-desc { font-size: 11px; margin-bottom: 12px; }
+    }
+
+    @media (max-width: 360px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+
+    @media (min-width: 768px) and (max-width: 1024px) {
+      .grid { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    @media (min-width: 1024px) {
+      .wrapper { max-width: 1100px; margin: 0 auto; padding-left: 40px; padding-right: 40px; }
+      .grid { grid-template-columns: repeat(4, 1fr); gap: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="wrapper">
+
+  <!-- ── Header ── -->
+  <header class="header">
+    <p class="header-eyebrow">Personal OS</p>
+    <h1 class="header-title">Command Center</h1>
+    <p class="header-sub">すべてのアプリへのゲートウェイ</p>
+  </header>
+
+  <!-- ── Tabs ── -->
+  <div class="tabs-wrap">
+    <nav class="tabs" id="tabs" role="tablist" aria-label="カテゴリフィルター"></nav>
+  </div>
+
+  <!-- ── Grid ── -->
+  <main class="grid" id="grid" role="main"></main>
+
+  <!-- ── Footer ── -->
+  <footer class="footer">
+    <p id="app-count"></p>
+  </footer>
+
+</div>
+
+<script src="apps-config.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  // ── 状態 ──────────────────────────────────────────────────
+  let activeCategory = "All";
+
+  // ── タブ生成 ──────────────────────────────────────────────
+  function buildTabs() {
+    const tabsEl = document.getElementById("tabs");
+    CATEGORIES_CONFIG.forEach(cat => {
+      const btn = document.createElement("button");
+      btn.className = "tab" + (cat.id === activeCategory ? " active" : "");
+      btn.textContent = (cat.emoji ? cat.emoji + " " : "") + cat.label;
+      btn.setAttribute("role", "tab");
+      btn.setAttribute("aria-selected", cat.id === activeCategory ? "true" : "false");
+      btn.dataset.catId = cat.id;
+      btn.dataset.color = cat.color;
+
+      if (cat.id === activeCategory) {
+        btn.style.background = cat.color;
+      }
+
+      btn.addEventListener("click", () => filterCategory(cat.id));
+      tabsEl.appendChild(btn);
+    });
+  }
+
+  // ── カード生成 ────────────────────────────────────────────
+  function buildCards() {
+    const grid = document.getElementById("grid");
+    const categories = [...new Set(APPS_CONFIG.map(a => a.category))];
+
+    categories.forEach(catName => {
+      // セクションラベル
+      const label = document.createElement("div");
+      label.className = "section-label";
+      label.dataset.section = catName;
+      const catConf = CATEGORIES_CONFIG.find(c => c.id === catName);
+      label.textContent = (catConf?.emoji ? catConf.emoji + " " : "") + catName;
+      if (catConf?.color) label.style.color = catConf.color;
+      grid.appendChild(label);
+
+      // カード
+      APPS_CONFIG.filter(a => a.category === catName).forEach((app, idx) => {
+        const card = document.createElement("a");
+        card.className = "card fade-in";
+        card.dataset.category = app.category;
+        card.dataset.status = app.status;
+        card.dataset.id = app.id;
+        card.style.setProperty("--card-color", app.color);
+        card.style.animationDelay = (idx * 0.06) + "s";
+
+        if (app.status === "active") {
+          card.href = app.url;
+        } else {
+          card.href = "#";
+          card.addEventListener("click", e => e.preventDefault());
+        }
+
+        card.innerHTML = `
+          <div class="card-accent" style="background:${app.color}"></div>
+          ${app.status !== "active" ? '<span class="badge-coming">準備中</span>' : ""}
+          <span class="card-icon">${app.icon}</span>
+          <div class="card-name">${app.name}</div>
+          <div class="card-desc">${app.description}</div>
+          <div class="card-footer">
+            <span class="card-category" style="color:${app.color}">${app.category}</span>
+            ${app.status === "active" ? '<span class="card-arrow">→</span>' : ""}
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    });
+
+    updateCount();
+  }
+
+  // ── フィルタリング ────────────────────────────────────────
+  function filterCategory(catId) {
+    activeCategory = catId;
+
+    // タブのスタイル更新
+    document.querySelectorAll(".tab").forEach(btn => {
+      const isActive = btn.dataset.catId === catId;
+      btn.classList.toggle("active", isActive);
+      btn.setAttribute("aria-selected", isActive ? "true" : "false");
+      btn.style.background = isActive ? btn.dataset.color : "";
+      btn.style.color = isActive ? "#000" : "";
+    });
+
+    // カード表示 / 非表示
+    const cards = document.querySelectorAll(".card");
+    cards.forEach((card, idx) => {
+      const match = catId === "All" || card.dataset.category === catId;
+      if (match) {
+        card.classList.remove("hidden");
+        card.classList.remove("fade-in");
+        // reflow trick でアニメーション再生
+        void card.offsetWidth;
+        card.style.animationDelay = (idx * 0.04) + "s";
+        card.classList.add("fade-in");
+      } else {
+        card.classList.add("hidden");
+        card.classList.remove("fade-in");
+      }
+    });
+
+    // セクションラベルの表示 / 非表示
+    document.querySelectorAll(".section-label").forEach(label => {
+      const match = catId === "All" || label.dataset.section === catId;
+      label.classList.toggle("hidden", !match);
+    });
+
+    updateCount();
+  }
+
+  // ── カウント表示 ──────────────────────────────────────────
+  function updateCount() {
+    const total = APPS_CONFIG.length;
+    const visible = activeCategory === "All"
+      ? APPS_CONFIG.filter(a => a.status === "active").length
+      : APPS_CONFIG.filter(a => a.category === activeCategory && a.status === "active").length;
+    const countEl = document.getElementById("app-count");
+    countEl.textContent = `${visible} apps active  ·  total ${total} registered`;
+  }
+
+  // ── Init ──────────────────────────────────────────────────
+  buildTabs();
+  buildCards();
+
+})();
+</script>
+
+</body>
+</html>
