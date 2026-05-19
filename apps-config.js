@@ -60,13 +60,33 @@ const APPS_CONFIG = [
   // ─── FINANCE カテゴリ ─────────────────────────────────────
   {
     id: "fin-01",
-    name: "投資レーダー",
-    icon: "📡",
-    url: "#",
+    name: "Catalyst Monitor",
+    icon: "📊",
+    url: "https://catalyst-app-eight.vercel.app/",
     category: "Finance",
     color: "#00ff88",
-    description: "ポートフォリオをリアルタイム監視",
-    status: "coming-soon"
+    description: "カタリスト決算監視システム",
+    status: "active"
+  },
+  {
+    id: "fin-02",
+    name: "Put Sell Dashboard",
+    icon: "📉",
+    url: "https://put-sell-dashboard-j64z.vercel.app/",
+    category: "Finance",
+    color: "#00ff88",
+    description: "プット売りポジション一括管理",
+    status: "active"
+  },
+  {
+    id: "fin-03",
+    name: "APEX TERMINAL",
+    icon: "⚡",
+    url: "https://apex-terminal-rho.vercel.app/",
+    category: "Finance",
+    color: "#f0c040",
+    description: "高機能トレーディングターミナル",
+    status: "active"
   },
 
   // ─── FITNESS カテゴリ ─────────────────────────────────────
