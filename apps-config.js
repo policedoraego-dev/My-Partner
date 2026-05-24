@@ -88,6 +88,16 @@ const APPS_CONFIG = [
     description: "高機能トレーディングターミナル",
     status: "active"
   },
+  {
+    id: "fin-04",
+    name: "Trading Playbook",
+    icon: "📋",
+    url: "https://www.notion.so/322f9abcfc52806ea44ee5f6884218b1",
+    category: "Finance",
+    color: "#00ff88",
+    description: "運用ルール・セクターローテーション・損切り利確基準の総合司令塔",
+    status: "active"
+  },
 
   // ─── FITNESS カテゴリ ─────────────────────────────────────
   {
