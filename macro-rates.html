@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="robots" content="index,follow">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0a0a0f">
+  <title>Macro &amp; Rates — マクロ経済・金利モニター</title>
+
+  <style>
+    /* ── Design Tokens (Command Center 統一) ───────────── */
+    :root {
+      --bg:           #0a0a0f;
+      --surface:      #111118;
+      --surface-2:    #161620;
+      --border:       rgba(255,255,255,0.07);
+      --border-bright:rgba(255,255,255,0.14);
+      --text-main:    #e8e8f0;
+      --text-muted:   #5a5a72;
+      --text-dim:     #3a3a52;
+      --green:        #00ff88;
+      --green-dim:    rgba(0,255,136,0.12);
+      --green-glow:   rgba(0,255,136,0.25);
+      --amber:        #f0c040;
+      --amber-dim:    rgba(240,192,64,0.12);
+      --red:          #ff4466;
+      --blue:         #40c4ff;
+      --blue-dim:     rgba(64,196,255,0.12);
+      --purple:       #b39dff;
+      --purple-dim:   rgba(179,157,255,0.12);
+      --radius:       14px;
+      --radius-sm:    8px;
+      --safe-top:     env(safe-area-inset-top, 0px);
+      --safe-bottom:  env(safe-area-inset-bottom, 0px);
+      --transition:   all 0.22s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display",
+                   "Segoe UI", Helvetica, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+    /* ── Page wrapper ─────────────────────────────────── */
+    .page {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: calc(var(--safe-top) + 20px) 20px calc(var(--safe-bottom) + 40px);
+    }
+
+    /* ── Top nav ──────────────────────────────────────── */
+    .topnav {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 600;
+      text-decoration: none;
+      letter-spacing: 0.05em;
+      transition: var(--transition);
+    }
+    .back-btn:hover {
+      border-color: var(--border-bright);
+      color: var(--text-main);
+    }
+
+    .page-eyebrow {
+      font-size: 10px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+
+    /* ── Page header ──────────────────────────────────── */
+    .page-header {
+      margin-bottom: 32px;
+    }
+
+    .page-title {
+      font-size: clamp(22px, 5vw, 34px);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #00ff88 0%, #40c4ff 50%, #b39dff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.15;
+      margin-bottom: 6px;
+    }
+
+    .page-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+      letter-spacing: 0.06em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .live-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green);
+      animation: pulse 2s infinite;
+      flex-shrink: 0;
+    }
+    @keyframes pulse {
+      0%,100% { opacity: 1; }
+      50%      { opacity: 0.3; }
+    }
+
+    /* ── Section label ────────────────────────────────── */
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      padding-bottom: 10px;
+      margin-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-label::before {
+      content: '';
+      display: inline-block;
+      width: 3px; height: 12px;
+      border-radius: 2px;
+    }
+    .section-label.green::before  { background: var(--green); }
+    .section-label.blue::before   { background: var(--blue); }
+    .section-label.amber::before  { background: var(--amber); }
+    .section-label.purple::before { background: var(--purple); }
+
+    /* ── Grid layouts ─────────────────────────────────── */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    /* ── Panel card ───────────────────────────────────── */
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      position: relative;
+      transition: var(--transition);
+    }
+    .panel:hover {
+      border-color: var(--border-bright);
+    }
+
+    .panel-header {
+      padding: 14px 16px 12px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .panel-title-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .panel-flag { font-size: 20px; line-height: 1; }
+
+    .panel-title {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .panel-subtitle {
+      font-size: 10px;
+      color: var(--text-muted);
+      letter-spacing: 0.04em;
+      margin-top: 2px;
+    }
+
+    .panel-body { padding: 0; }
+
+    /* ── Rate display ─────────────────────────────────── */
+    .rate-display {
+      padding: 16px 16px 14px;
+      background: var(--surface-2);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .rate-main {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .rate-value {
+      font-size: 36px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+    }
+
+    .rate-value.us  { color: var(--green); }
+    .rate-value.jp  { color: var(--blue); }
+    .rate-value.diff-pos { color: var(--amber); }
+    .rate-value.diff-neg { color: var(--red); }
+
+    .rate-unit {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .rate-change {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+      letter-spacing: 0.04em;
+    }
+    .rate-change.up   { background: rgba(0,255,136,0.15); color: var(--green); }
+    .rate-change.down { background: rgba(255,68,102,0.15); color: var(--red); }
+    .rate-change.hold { background: rgba(255,255,255,0.06); color: var(--text-muted); }
+
+    .rate-meta {
+      font-size: 10px;
+      color: var(--text-muted);
+      letter-spacing: 0.04em;
+      margin-top: 6px;
+    }
+
+    /* ── TradingView widget wrapper ───────────────────── */
+    .tv-widget-wrap {
+      width: 100%;
+      height: 200px;
+      background: var(--surface-2);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .tv-widget-wrap .tradingview-widget-container,
+    .tv-widget-wrap .tradingview-widget-container__widget {
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    /* ── Quick links inside panel ─────────────────────── */
+    .panel-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      padding: 12px 14px;
+      border-top: 1px solid var(--border);
+    }
+
+    .panel-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 11px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-decoration: none;
+      transition: var(--transition);
+      white-space: nowrap;
+    }
+    .panel-link:hover {
+      border-color: var(--border-bright);
+      color: var(--text-main);
+    }
+    .panel-link.primary:hover {
+      border-color: var(--green);
+      color: var(--green);
+      background: var(--green-dim);
+      box-shadow: 0 0 10px var(--green-glow);
+    }
+    .panel-link.blue:hover {
+      border-color: var(--blue);
+      color: var(--blue);
+      background: var(--blue-dim);
+    }
+    .panel-link.amber:hover {
+      border-color: var(--amber);
+      color: var(--amber);
+      background: var(--amber-dim);
+    }
+    .panel-link.purple:hover {
+      border-color: var(--purple);
+      color: var(--purple);
+      background: var(--purple-dim);
+    }
+
+    /* ── Rate Differential bar ────────────────────────── */
+    .diff-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-bottom: 20px;
+      transition: var(--transition);
+    }
+    .diff-panel:hover { border-color: var(--border-bright); }
+
+    .diff-header {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .diff-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .diff-body {
+      padding: 18px 16px;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .diff-side {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .diff-side-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .diff-side-val {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      font-variant-numeric: tabular-nums;
+    }
+    .diff-side-val.us { color: var(--green); }
+    .diff-side-val.jp { color: var(--blue); }
+
+    .diff-spread-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .diff-spread-label {
+      font-size: 9px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+
+    .diff-spread-val {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--amber);
+      letter-spacing: -0.02em;
+      text-shadow: 0 0 16px rgba(240,192,64,0.4);
+    }
+
+    .diff-bar-wrap {
+      padding: 0 16px 16px;
+    }
+
+    .diff-bar-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 9px;
+      letter-spacing: 0.1em;
+      color: var(--text-dim);
+      margin-bottom: 5px;
+    }
+
+    .diff-bar-track {
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .diff-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      background: linear-gradient(90deg, var(--blue) 0%, var(--amber) 60%, var(--green) 100%);
+      width: var(--fill-pct, 78%);
+      transition: width 1s ease;
+    }
+
+    /* ── USDJPY big chart ─────────────────────────────── */
+    .usdjpy-wrap {
+      width: 100%;
+      height: 280px;
+      position: relative;
+    }
+
+    .usdjpy-wrap .tradingview-widget-container,
+    .usdjpy-wrap .tradingview-widget-container__widget {
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    /* ── Info badge ───────────────────────────────────── */
+    .info-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 9px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    .info-badge.green  { background: var(--green-dim);  color: var(--green); border: 1px solid rgba(0,255,136,0.25); }
+    .info-badge.blue   { background: var(--blue-dim);   color: var(--blue);  border: 1px solid rgba(64,196,255,0.25); }
+    .info-badge.amber  { background: var(--amber-dim);  color: var(--amber); border: 1px solid rgba(240,192,64,0.25); }
+    .info-badge.purple { background: var(--purple-dim); color: var(--purple);border: 1px solid rgba(179,157,255,0.25); }
+
+    /* ── Context note ─────────────────────────────────── */
+    .context-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px,1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .context-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      transition: var(--transition);
+    }
+    .context-card:hover { border-color: var(--border-bright); }
+
+    .ctx-icon { font-size: 22px; margin-bottom: 8px; }
+
+    .ctx-title {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      margin-bottom: 5px;
+    }
+
+    .ctx-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .ctx-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 10px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--green);
+      text-decoration: none;
+      letter-spacing: 0.04em;
+      transition: var(--transition);
+    }
+    .ctx-link:hover { color: #fff; }
+
+    /* ── Responsive ───────────────────────────────────── */
+    @media (max-width: 700px) {
+      .grid-2  { grid-template-columns: 1fr; }
+      .grid-3  { grid-template-columns: 1fr 1fr; }
+      .diff-body {
+        grid-template-columns: 1fr;
+        text-align: center;
+      }
+      .diff-side { align-items: center; }
+    }
+
+    @media (max-width: 480px) {
+      .grid-3  { grid-template-columns: 1fr; }
+      .page { padding-left: 14px; padding-right: 14px; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ── Top nav ── -->
+  <nav class="topnav">
+    <a class="back-btn" href="./index.html">← Command Center</a>
+    <span class="page-eyebrow">Finance / Macro</span>
+  </nav>
+
+  <!-- ── Page header ── -->
+  <div class="page-header">
+    <h1 class="page-title">Macro &amp; Rates</h1>
+    <div class="page-sub">
+      <span class="live-dot"></span>
+      マクロ経済・金利モニター — 日米金利差・ドル円の先行指標
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       SECTION 1: 日米政策金利 比較パネル
+  ═══════════════════════════════════════════ -->
+  <div class="section-label green">日米 政策金利 比較</div>
+
+  <div class="grid-2">
+
+    <!-- 🇺🇸 US Fed Rate Panel -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title-group">
+          <span class="panel-flag">🇺🇸</span>
+          <div>
+            <div class="panel-title" style="color:var(--green)">US Federal Funds Rate</div>
+            <div class="panel-subtitle">FOMC 政策金利 / CME FedWatch予測</div>
+          </div>
+        </div>
+        <span class="info-badge green">Fed</span>
+      </div>
+
+      <div class="panel-body">
+        <div class="rate-display">
+          <div class="rate-main">
+            <span class="rate-value us" id="us-rate">5.25–5.50</span>
+            <span class="rate-unit">%</span>
+            <span class="rate-change hold">HOLD</span>
+          </div>
+          <div class="rate-meta">現行政策金利 • 次回 FOMC会合の確率は下部リンク参照</div>
+        </div>
+
+        <!-- TradingView: US 2Y Treasury (Fed期待値の最良プロキシ) -->
+        <div class="tv-widget-wrap">
+          <div class="tradingview-widget-container">
+            <div class="tradingview-widget-container__widget"></div>
+            <script type="text/javascript"
+              src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
+            {
+              "symbol": "TVC:US02Y",
+              "width": "100%",
+              "height": "200",
+              "locale": "ja",
+              "dateRange": "12M",
+              "colorTheme": "dark",
+              "trendLineColor": "rgba(0,255,136,1)",
+              "underLineColor": "rgba(0,255,136,0.18)",
+              "underLineBottomColor": "rgba(0,0,0,0)",
+              "isTransparent": true,
+              "autosize": false,
+              "largeChartUrl": "https://jp.tradingview.com/chart/?symbol=TVC:US02Y"
+            }
+            </script>
+          </div>
+        </div>
+
+        <div class="panel-links">
+          <a class="panel-link primary"
+             href="https://www.cmegroup.com/markets/interest-rates/cme-fedwatch-tool.html"
+             target="_blank" rel="noopener noreferrer">
+            🎯 CME FedWatch ↗
+          </a>
+          <a class="panel-link"
+             href="https://jp.tradingview.com/chart/?symbol=CME:FF1!"
+             target="_blank" rel="noopener noreferrer">
+            📈 FF Futures ↗
+          </a>
+          <a class="panel-link"
+             href="https://jp.tradingview.com/chart/?symbol=TVC:US02Y"
+             target="_blank" rel="noopener noreferrer">
+            📊 US 2Y ↗
+          </a>
+          <a class="panel-link"
+             href="https://jp.tradingview.com/chart/?symbol=TVC:US10Y"
+             target="_blank" rel="noopener noreferrer">
+            📊 US 10Y ↗
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- 🗾 Japan BOJ Rate Panel -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title-group">
+          <span class="panel-flag">🗾</span>
+          <div>
+            <div class="panel-title" style="color:var(--blue)">Japan BOJ Policy Rate</div>
+            <div class="panel-subtitle">日銀 政策金利 / OIS JP 市場予測</div>
+          </div>
+        </div>
+        <span class="info-badge blue">BOJ</span>
+      </div>
+
+      <div class="panel-body">
+        <div class="rate-display">
+          <div class="rate-main">
+            <span class="rate-value jp" id="jp-rate">0.10</span>
+            <span class="rate-unit">%</span>
+            <span class="rate-change up">↑ 正常化</span>
+          </div>
+          <div class="rate-meta">現行政策金利 • OIS JP（円OIS）が市場の利上げ確率を織り込む</div>
+        </div>
+
+        <!-- TradingView: JP 2Y JGB (BOJ期待値の最良プロキシ) -->
+        <div class="tv-widget-wrap">
+          <div class="tradingview-widget-container">
+            <div class="tradingview-widget-container__widget"></div>
+            <script type="text/javascript"
+              src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
+            {
+              "symbol": "TVC:JP02Y",
+              "width": "100%",
+              "height": "200",
+              "locale": "ja",
+              "dateRange": "12M",
+              "colorTheme": "dark",
+              "trendLineColor": "rgba(64,196,255,1)",
+              "underLineColor": "rgba(64,196,255,0.18)",
+              "underLineBottomColor": "rgba(0,0,0,0)",
+              "isTransparent": true,
+              "autosize": false,
+              "largeChartUrl": "https://jp.tradingview.com/chart/?symbol=TVC:JP02Y"
+            }
+            </script>
+          </div>
+        </div>
+
+        <div class="panel-links">
+          <a class="panel-link blue"
+             href="https://www.boj.or.jp/mopo/mpmdeci/index.htm"
+             target="_blank" rel="noopener noreferrer">
+            🏦 日銀 MPM決定 ↗
+          </a>
+          <a class="panel-link"
+             href="https://jp.tradingview.com/chart/?symbol=TVC:JP02Y"
+             target="_blank" rel="noopener noreferrer">
+            📊 JP 2Y JGB ↗
+          </a>
+          <a class="panel-link"
+             href="https://jp.tradingview.com/chart/?symbol=TVC:JP10Y"
+             target="_blank" rel="noopener noreferrer">
+            📊 JP 10Y JGB ↗
+          </a>
+          <a class="panel-link blue"
+             href="https://jp.tradingview.com/chart/?symbol=QUANDL:MOFJ%2FINTEREST_RATE_JAPAN"
+             target="_blank" rel="noopener noreferrer">
+            📉 JP OIS Proxy ↗
+          </a>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /grid-2 -->
+
+
+  <!-- ═══════════════════════════════════════════
+       SECTION 2: 金利差スプレッド + ドル円
+  ═══════════════════════════════════════════ -->
+  <div class="section-label amber">金利差スプレッド &amp; ドル円（先行指標）</div>
+
+  <!-- Rate Differential Indicator -->
+  <div class="diff-panel">
+    <div class="diff-header">
+      <span class="diff-title">🔄 US–JP 政策金利差（Rate Differential）</span>
+      <span class="info-badge amber">ドル円の方向性を先行</span>
+    </div>
+    <div class="diff-body">
+      <div class="diff-side">
+        <div class="diff-side-label">🇺🇸 US Fed Rate</div>
+        <div class="diff-side-val us">5.25%</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:4px">現行 FF Rate</div>
+      </div>
+      <div class="diff-spread-wrap">
+        <div class="diff-spread-label">SPREAD</div>
+        <div class="diff-spread-val">+5.15%</div>
+        <div style="font-size:9px;color:var(--text-dim);text-align:center;margin-top:2px">US有利 → 円安圧力</div>
+      </div>
+      <div class="diff-side" style="text-align:right;align-items:flex-end">
+        <div class="diff-side-label">🗾 JP BOJ Rate</div>
+        <div class="diff-side-val jp">0.10%</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:4px">現行 政策金利</div>
+      </div>
+    </div>
+    <div class="diff-bar-wrap">
+      <div class="diff-bar-labels">
+        <span>円高 ← JP金利上昇</span>
+        <span>現在地</span>
+        <span>円安 → US金利高</span>
+      </div>
+      <div class="diff-bar-track">
+        <div class="diff-bar-fill" style="--fill-pct:82%"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- USDJPY + Rate Spread Charts -->
+  <div class="grid-2" style="margin-bottom:20px">
+
+    <!-- USDJPY Chart -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title-group">
+          <span class="panel-flag">💱</span>
+          <div>
+            <div class="panel-title" style="color:var(--amber)">USD / JPY</div>
+            <div class="panel-subtitle">ドル円 — 金利差の結果変数</div>
+          </div>
+        </div>
+      </div>
+      <div class="usdjpy-wrap">
+        <div class="tradingview-widget-container">
+          <div class="tradingview-widget-container__widget"></div>
+          <script type="text/javascript"
+            src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
+          {
+            "symbol": "FX:USDJPY",
+            "width": "100%",
+            "height": "280",
+            "locale": "ja",
+            "dateRange": "12M",
+            "colorTheme": "dark",
+            "trendLineColor": "rgba(240,192,64,1)",
+            "underLineColor": "rgba(240,192,64,0.18)",
+            "underLineBottomColor": "rgba(0,0,0,0)",
+            "isTransparent": true,
+            "autosize": false,
+            "largeChartUrl": "https://jp.tradingview.com/chart/?symbol=FX:USDJPY"
+          }
+          </script>
+        </div>
+      </div>
+      <div class="panel-links">
+        <a class="panel-link amber"
+           href="https://jp.tradingview.com/chart/?symbol=FX:USDJPY"
+           target="_blank" rel="noopener noreferrer">
+          📈 TradingView USDJPY ↗
+        </a>
+      </div>
+    </div>
+
+    <!-- US10Y - JP10Y Spread Chart -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title-group">
+          <span class="panel-flag">📐</span>
+          <div>
+            <div class="panel-title" style="color:var(--purple)">US 10Y – JP 10Y Spread</div>
+            <div class="panel-subtitle">10年債金利差（長期金利差）</div>
+          </div>
+        </div>
+      </div>
+      <div class="usdjpy-wrap">
+        <div class="tradingview-widget-container">
+          <div class="tradingview-widget-container__widget"></div>
+          <script type="text/javascript"
+            src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
+          {
+            "symbol": "SPREAD:US10Y-JP10Y",
+            "width": "100%",
+            "height": "280",
+            "locale": "ja",
+            "dateRange": "12M",
+            "colorTheme": "dark",
+            "trendLineColor": "rgba(179,157,255,1)",
+            "underLineColor": "rgba(179,157,255,0.18)",
+            "underLineBottomColor": "rgba(0,0,0,0)",
+            "isTransparent": true,
+            "autosize": false,
+            "largeChartUrl": "https://jp.tradingview.com/chart/?symbol=SPREAD:US10Y-JP10Y"
+          }
+          </script>
+        </div>
+      </div>
+      <div class="panel-links">
+        <a class="panel-link purple"
+           href="https://jp.tradingview.com/chart/?symbol=SPREAD:US10Y-JP10Y"
+           target="_blank" rel="noopener noreferrer">
+          📊 Spread Chart ↗
+        </a>
+        <a class="panel-link"
+           href="https://jp.tradingview.com/chart/?symbol=TVC:US10Y"
+           target="_blank" rel="noopener noreferrer">US 10Y ↗</a>
+        <a class="panel-link"
+           href="https://jp.tradingview.com/chart/?symbol=TVC:JP10Y"
+           target="_blank" rel="noopener noreferrer">JP 10Y ↗</a>
+      </div>
+    </div>
+
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════
+       SECTION 3: 重要リソース
+  ═══════════════════════════════════════════ -->
+  <div class="section-label purple">公式確認 &amp; 重要リソース</div>
+
+  <div class="context-grid">
+    <div class="context-card">
+      <div class="ctx-icon">🎯</div>
+      <div class="ctx-title">CME FedWatch Tool</div>
+      <div class="ctx-desc">FF金利先物から算出するFOMC各会合の利上げ・据え置き・利下げ確率。米国金利の市場コンセンサスを確認。</div>
+      <a class="ctx-link"
+         href="https://www.cmegroup.com/markets/interest-rates/cme-fedwatch-tool.html"
+         target="_blank" rel="noopener noreferrer">
+        開く ↗
+      </a>
+    </div>
+    <div class="context-card">
+      <div class="ctx-icon">🏦</div>
+      <div class="ctx-title">日本銀行 MPM声明</div>
+      <div class="ctx-desc">日銀金融政策決定会合（MPM）の声明文・展望レポートなど公式一次情報。利上げタイミングの確認に必須。</div>
+      <a class="ctx-link"
+         href="https://www.boj.or.jp/mopo/mpmdeci/index.htm"
+         target="_blank" rel="noopener noreferrer">
+        開く ↗
+      </a>
+    </div>
+    <div class="context-card">
+      <div class="ctx-icon">📡</div>
+      <div class="ctx-title">OIS JP（Bloomberg）</div>
+      <div class="ctx-desc">円OIS（Overnight Index Swap）は日銀の利上げ確率を最も精度高く織り込む指標。Bloomberg Ratesで確認。</div>
+      <a class="ctx-link"
+         href="https://www.bloomberg.co.jp/markets/rates-bonds/government-bonds/japan"
+         target="_blank" rel="noopener noreferrer">
+        開く ↗
+      </a>
+    </div>
+    <div class="context-card">
+      <div class="ctx-icon">📊</div>
+      <div class="ctx-title">Federal Reserve — dot plot</div>
+      <div class="ctx-desc">SEP（Summary of Economic Projections）のドットプロット。FRB参加者の長期金利見通しを把握。</div>
+      <a class="ctx-link"
+         href="https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"
+         target="_blank" rel="noopener noreferrer">
+        開く ↗
+      </a>
+    </div>
+    <div class="context-card">
+      <div class="ctx-icon">📰</div>
+      <div class="ctx-title">Investing.com 経済指標カレンダー</div>
+      <div class="ctx-desc">CPI・PCE・雇用統計・FOMC・日銀会合など主要イベントを一覧。金利動向に影響する指標のスケジュール確認。</div>
+      <a class="ctx-link"
+         href="https://jp.investing.com/economic-calendar/"
+         target="_blank" rel="noopener noreferrer">
+        開く ↗
+      </a>
+    </div>
+    <div class="context-card">
+      <div class="ctx-icon">🌐</div>
+      <div class="ctx-title">TradingView 金利チャート</div>
+      <div class="ctx-desc">US10Y / JP10Y / JP02Y / US02Y など各国の国債利回りを一か所でチャート確認。スプレッドも計算可。</div>
+      <a class="ctx-link"
+         href="https://jp.tradingview.com/chart/?symbol=TVC:US10Y"
+         target="_blank" rel="noopener noreferrer">
+        開く ↗
+      </a>
+    </div>
+  </div>
+
+</div><!-- /page -->
+</body>
+</html>

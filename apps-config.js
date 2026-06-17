@@ -98,6 +98,16 @@ const APPS_CONFIG = [
     description: "運用ルール・セクターローテーション・損切り利確基準の総合司令塔",
     status: "active"
   },
+  {
+    id: "fin-05",
+    name: "Macro & Rates",
+    icon: "📡",
+    url: "./macro-rates.html",
+    category: "Finance",
+    color: "#40c4ff",
+    description: "日米金利差・BOJ/Fed政策金利・ドル円の先行指標モニター",
+    status: "active"
+  },
 
   // ─── FITNESS カテゴリ ─────────────────────────────────────
   {
